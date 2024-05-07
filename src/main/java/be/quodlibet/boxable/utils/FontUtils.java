@@ -38,9 +38,9 @@ public final class FontUtils {
 
 	/**
 	 * <p>
-	 * {@link HashMap} for caching {@link FontMetrics} for designated
-	 * {@link PDFont} because {@link FontUtils#getHeight(PDFont, float)} is
-	 * expensive to calculate and the results are only approximate.
+	 * {@link HashMap} for caching {@link FontMetrics} for designated {@link PDFont}
+	 * because {@link FontUtils#getHeight(PDFont, float)} is expensive to calculate
+	 * and the results are only approximate.
 	 */
 	private static final Map<String, FontMetrics> fontMetrics = new HashMap<>();
 
@@ -55,10 +55,8 @@ public final class FontUtils {
 	 * {@link PDDocument}.
 	 * </p>
 	 * 
-	 * @param document
-	 *            {@link PDDocument} where fonts will be loaded
-	 * @param fontPath
-	 *            font path which will be loaded
+	 * @param document {@link PDDocument} where fonts will be loaded
+	 * @param fontPath font path which will be loaded
 	 * @return The read {@link PDType0Font}
 	 */
 	public static final PDType0Font loadFont(PDDocument document, String fontPath) {
@@ -72,16 +70,13 @@ public final class FontUtils {
 
 	/**
 	 * <p>
-	 * Retrieving {@link String} width depending on current font size. The width
-	 * of the string in 1/1000 units of text space.
+	 * Retrieving {@link String} width depending on current font size. The width of
+	 * the string in 1/1000 units of text space.
 	 * </p>
 	 * 
-	 * @param font
-	 *            The font of text whose width will be retrieved
-	 * @param text
-	 *            The text whose width will be retrieved
-	 * @param fontSize
-	 *            The font size of text whose width will be retrieved
+	 * @param font     The font of text whose width will be retrieved
+	 * @param text     The text whose width will be retrieved
+	 * @param fontSize The font size of text whose width will be retrieved
 	 * @return text width
 	 */
 	public static float getStringWidth(final PDFont font, final String text, final float fontSize) {
@@ -98,10 +93,8 @@ public final class FontUtils {
 	 * Calculate the font ascent distance.
 	 * </p>
 	 * 
-	 * @param font
-	 *            The font from which calculation will be applied
-	 * @param fontSize
-	 *            The font size from which calculation will be applied
+	 * @param font     The font from which calculation will be applied
+	 * @param fontSize The font size from which calculation will be applied
 	 * @return Positive font ascent distance
 	 */
 	public static float getAscent(final PDFont font, final float fontSize) {
@@ -118,10 +111,8 @@ public final class FontUtils {
 	 * Calculate the font descent distance.
 	 * </p>
 	 * 
-	 * @param font
-	 *            The font from which calculation will be applied
-	 * @param fontSize
-	 *            The font size from which calculation will be applied
+	 * @param font     The font from which calculation will be applied
+	 * @param fontSize The font size from which calculation will be applied
 	 * @return Negative font descent distance
 	 */
 	public static float getDescent(final PDFont font, final float fontSize) {
@@ -138,10 +129,8 @@ public final class FontUtils {
 	 * Calculate the font height.
 	 * </p>
 	 * 
-	 * @param font
-	 *            {@link PDFont} from which the height will be calculated.
-	 * @param fontSize
-	 *            font size for current {@link PDFont}.
+	 * @param font     {@link PDFont} from which the height will be calculated.
+	 * @param fontSize font size for current {@link PDFont}.
 	 * @return {@link PDFont}'s height
 	 */
 	public static float getHeight(final PDFont font, final float fontSize) {
@@ -158,11 +147,9 @@ public final class FontUtils {
 	 * Create basic {@link FontMetrics} for current font.
 	 * <p>
 	 * 
-	 * @param font
-	 *            The font from which calculation will be applied <<<<<<< HEAD
-	 * @throws IOException
-	 *             If reading the font file fails ======= >>>>>>> using FreeSans
-	 *             as default font and added new free fonts
+	 * @param font The font from which calculation will be applied <<<<<<< HEAD
+	 * @throws IOException If reading the font file fails ======= >>>>>>> using
+	 *                     FreeSans as default font and added new free fonts
 	 */
 	private static void createFontMetrics(final PDFont font) {
 		final float base = font.getFontDescriptor().getXHeight() / 1000;
@@ -171,8 +158,7 @@ public final class FontUtils {
 		fontMetrics.put(font.getName(), new FontMetrics(base + ascent - descent, ascent, descent));
 	}
 
-	public static void addDefaultFonts(final PDFont font, final PDFont fontBold, final PDFont fontItalic,
-			final PDFont fontBoldItalic) {
+	public static void addDefaultFonts(final PDFont font, final PDFont fontBold, final PDFont fontItalic, final PDFont fontBoldItalic) {
 		defaultFonts.put("font", font);
 		defaultFonts.put("fontBold", fontBold);
 		defaultFonts.put("fontItalic", fontItalic);

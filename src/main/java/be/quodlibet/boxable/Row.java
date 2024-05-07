@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 
@@ -37,14 +36,11 @@ public class Row<T extends PDPage> {
 
 	/**
 	 * <p>
-	 * Creates a cell with provided width, cell value and default left top
-	 * alignment
+	 * Creates a cell with provided width, cell value and default left top alignment
 	 * </p>
 	 * 
-	 * @param width
-	 *            Absolute width in points or in % of table width
-	 * @param value
-	 *            Cell's value (content)
+	 * @param width Absolute width in points or in % of table width
+	 * @param value Cell's value (content)
 	 * @return New {@link Cell}
 	 */
 	public Cell<T> createCell(float width, String value) {
@@ -64,10 +60,8 @@ public class Row<T extends PDPage> {
 	 * Creates an image cell with provided width and {@link Image}
 	 * </p>
 	 * 
-	 * @param width
-	 *            Cell's width
-	 * @param img
-	 *            {@link Image} in the cell
+	 * @param width Cell's width
+	 * @param img   {@link Image} in the cell
 	 * @return {@link ImageCell}
 	 */
 	public ImageCell<T> createImageCell(float width, Image img) {
@@ -86,48 +80,14 @@ public class Row<T extends PDPage> {
 
 	/**
 	 * <p>
-	 * Creates a table cell with provided width and table data
-	 * </p>
-	 * 
-	 * @param width
-	 *            Table width
-	 * @param tableData
-	 *            Table's data (HTML table tags)
-	 * @param doc
-	 *            {@link PDDocument} where this table will be drawn
-	 * @param page
-	 *            {@link PDPage} where this table cell will be drawn
-	 * @param yStart
-	 *            Y position from which table will be drawn
-	 * @param pageTopMargin
-	 *            {@link TableCell}'s top margin
-	 * @param pageBottomMargin
-	 *            {@link TableCell}'s bottom margin
-	 * @return {@link TableCell} with provided width and table data
-	 */
-	public TableCell<T> createTableCell(float width, String tableData, PDDocument doc, PDPage page, float yStart,
-			float pageTopMargin, float pageBottomMargin) {
-		TableCell<T> cell = new TableCell<T>(this, width, tableData, true, doc, page, yStart, pageTopMargin,
-				pageBottomMargin);
-		setBorders(cell, cells.isEmpty());
-		cells.add(cell);
-		return cell;
-	}
-
-	/**
-	 * <p>
 	 * Creates a cell with provided width, cell value, horizontal and vertical
 	 * alignment
 	 * </p>
 	 * 
-	 * @param width
-	 *            Absolute width in points or in % of table width
-	 * @param value
-	 *            Cell's value (content)
-	 * @param align
-	 *            Cell's {@link HorizontalAlignment}
-	 * @param valign
-	 *            Cell's {@link VerticalAlignment}
+	 * @param width  Absolute width in points or in % of table width
+	 * @param value  Cell's value (content)
+	 * @param align  Cell's {@link HorizontalAlignment}
+	 * @param valign Cell's {@link VerticalAlignment}
 	 * @return New {@link Cell}
 	 */
 	public Cell<T> createCell(float width, String value, HorizontalAlignment align, VerticalAlignment valign) {
@@ -147,8 +107,7 @@ public class Row<T extends PDPage> {
 	 * Creates a cell with the same width as the corresponding header cell
 	 * </p>
 	 *
-	 * @param value
-	 *            Cell's value (content)
+	 * @param value Cell's value (content)
 	 * @return new {@link Cell}
 	 */
 	public Cell<T> createCell(String value) {
@@ -161,15 +120,13 @@ public class Row<T extends PDPage> {
 
 	/**
 	 * <p>
-	 * Remove left border to avoid double borders from previous cell's right
-	 * border. In most cases left border will be removed.
+	 * Remove left border to avoid double borders from previous cell's right border.
+	 * In most cases left border will be removed.
 	 * </p>
 	 * 
-	 * @param cell
-	 *            {@link Cell}
-	 * @param leftBorder
-	 *            boolean for drawing cell's left border. If {@code true} then
-	 *            the left cell's border will be drawn.
+	 * @param cell       {@link Cell}
+	 * @param leftBorder boolean for drawing cell's left border. If {@code true}
+	 *                   then the left cell's border will be drawn.
 	 */
 	private void setBorders(final Cell<T> cell, final boolean leftBorder) {
 		if (!leftBorder) {
@@ -179,8 +136,8 @@ public class Row<T extends PDPage> {
 
 	/**
 	 * <p>
-	 * remove top borders of cells to avoid double borders from cells in
-	 * previous row
+	 * remove top borders of cells to avoid double borders from cells in previous
+	 * row
 	 * </p>
 	 */
 	void removeTopBorders() {

@@ -1,33 +1,35 @@
 package be.quodlibet.boxable.text;
 
-import org.apache.pdfbox.pdmodel.font.PDFont;
-
 import java.io.IOException;
 import java.util.Objects;
+
+import org.apache.pdfbox.pdmodel.font.PDFont;
+
+import be.quodlibet.boxable.Paragraph;
 
 // Token itself is thread safe, so you can reuse shared instances;
 // however, subclasses may have additional methods which are not thread safe.
 public class Token {
 
 	private final TokenType type;
-	
+
 	private final String data;
 
 	public Token(TokenType type, String data) {
 		this.type = type;
 		this.data = data;
 	}
-	
+
 	public String getData() {
 		return data;
 	}
-	
+
 	public TokenType getType() {
 		return type;
 	}
 
-	public float getWidth(PDFont font) throws IOException {
-		return font.getStringWidth(getData());
+	public float getWidth(PDFont[] fonts) throws IOException {
+		return Paragraph.getStringWidth(fonts, getData());
 	}
 
 	@Override
@@ -37,11 +39,12 @@ public class Token {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		Token token = (Token) o;
-		return getType() == token.getType() &&
-				Objects.equals(getData(), token.getData());
+		return getType() == token.getType() && Objects.equals(getData(), token.getData());
 	}
 
 	@Override
@@ -57,7 +60,7 @@ public class Token {
 
 // Non-thread safe subclass with caching to optimize tokens containing renderable text
 class TextToken extends Token {
-	private PDFont cachedWidthFont;
+	private PDFont[] cachedWidthFont;
 	private float cachedWidth;
 
 	TextToken(TokenType type, String data) {
@@ -65,7 +68,7 @@ class TextToken extends Token {
 	}
 
 	@Override
-	public float getWidth(PDFont font) throws IOException {
+	public float getWidth(PDFont[] font) throws IOException {
 		if (font == cachedWidthFont) {
 			return cachedWidth;
 		}

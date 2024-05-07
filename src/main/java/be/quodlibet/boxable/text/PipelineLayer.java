@@ -3,9 +3,10 @@ package be.quodlibet.boxable.text;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.apache.pdfbox.pdmodel.font.PDFont;
+
+import be.quodlibet.boxable.Paragraph;
 
 /**
  * 
@@ -53,20 +54,22 @@ public class PipelineLayer {
 		tokens.add(token);
 	}
 
-	public void push(final PDFont font, final float fontSize, final Token token) throws IOException {
+	public void push(final PDFont[] fonts, final float fontSize, final Token token) throws IOException {
 		if (token.getType().equals(TokenType.PADDING)) {
 			width += Float.parseFloat(token.getData());
 		}
 		if (token.getType().equals(TokenType.BULLET)) {
-			// just appending one space because our bullet width will be wide as one character of current font
+			// just appending one space because our bullet width will be wide as one
+			// character of current font
 			text.append(token.getData());
-			width += (token.getWidth(font) / 1000f * fontSize);
+			width += (token.getWidth(fonts) / 1000f * fontSize);
 		}
 
 		if (token.getType().equals(TokenType.ORDERING)) {
-			// just appending one space because our bullet width will be wide as one character of current font
+			// just appending one space because our bullet width will be wide as one
+			// character of current font
 			text.append(token.getData());
-			width += (token.getWidth(font) / 1000f * fontSize);
+			width += (token.getWidth(fonts) / 1000f * fontSize);
 		}
 
 		if (token.getType().equals(TokenType.TEXT)) {
@@ -74,16 +77,15 @@ public class PipelineLayer {
 			width += widthLastToken;
 			lastTextToken = token.getData();
 			trimmedLastTextToken = rtrim(lastTextToken);
-			widthLastToken = token.getWidth(font) / 1000f * fontSize;
+			widthLastToken = token.getWidth(fonts) / 1000f * fontSize;
 
 			if (trimmedLastTextToken.length() == lastTextToken.length()) {
 				widthTrimmedLastToken = widthLastToken;
 			} else {
-				widthTrimmedLastToken = (font.getStringWidth(trimmedLastTextToken) / 1000f * fontSize);
+				widthTrimmedLastToken = (Paragraph.getStringWidth(fonts, trimmedLastTextToken) / 1000f * fontSize);
 			}
 
-			widthCurrentText = text.length() == 0 ? 0 :
-					(font.getStringWidth(text.toString()) / 1000f * fontSize);
+			widthCurrentText = text.length() == 0 ? 0 : (Paragraph.getStringWidth(fonts, text.toString()) / 1000f * fontSize);
 		}
 
 		push(token);

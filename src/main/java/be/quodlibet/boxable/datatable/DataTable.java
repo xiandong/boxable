@@ -1,14 +1,5 @@
 package be.quodlibet.boxable.datatable;
 
-import be.quodlibet.boxable.BaseTable;
-import be.quodlibet.boxable.Cell;
-import be.quodlibet.boxable.HorizontalAlignment;
-import be.quodlibet.boxable.Row;
-import be.quodlibet.boxable.Table;
-import be.quodlibet.boxable.VerticalAlignment;
-import be.quodlibet.boxable.line.LineStyle;
-import be.quodlibet.boxable.utils.FontUtils;
-
 import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +15,15 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+
+import be.quodlibet.boxable.BaseTable;
+import be.quodlibet.boxable.Cell;
+import be.quodlibet.boxable.HorizontalAlignment;
+import be.quodlibet.boxable.Row;
+import be.quodlibet.boxable.Table;
+import be.quodlibet.boxable.VerticalAlignment;
+import be.quodlibet.boxable.line.LineStyle;
+import be.quodlibet.boxable.utils.FontUtils;
 
 /**
  * Write CSV documents directly to PDF Tables
@@ -45,30 +45,29 @@ public class DataTable {
 
 	/**
 	 * <p>
-	 * Create a CSVTable object to be able to add CSV document to a Table. A
-	 * page needs to be passed to the constructor so the Template Cells can be
-	 * created.
+	 * Create a CSVTable object to be able to add CSV document to a Table. A page
+	 * needs to be passed to the constructor so the Template Cells can be created.
 	 * </p>
 	 *
 	 * @param table {@link Table}
-	 * @param page {@link PDPage}
-	 * @throws IOException  If there is an error releasing resources
+	 * @param page  {@link PDPage}
+	 * @throws IOException If there is an error releasing resources
 	 */
 	public DataTable(Table table, PDPage page) throws IOException {
-		this(table, page, new ArrayList<Float>(),null);
+		this(table, page, new ArrayList<Float>(), null);
 	}
 
 	/**
 	 * <p>
-	 * Create a CSVTable object to be able to add CSV document to a Table. A
-	 * page needs to be passed to the constructor so the Template Cells can be
+	 * Create a CSVTable object to be able to add CSV document to a Table. A page
+	 * needs to be passed to the constructor so the Template Cells can be
 	 * created.The interface allows you to update the cell property
 	 * </p>
 	 *
-	 * @param table {@link Table}
-	 * @param page {@link PDPage}
+	 * @param table              {@link Table}
+	 * @param page               {@link PDPage}
 	 * @param updateCellProperty {@link UpdateCellProperty}
-	 * @throws IOException  If there is an error releasing resources
+	 * @throws IOException If there is an error releasing resources
 	 */
 	public DataTable(Table table, PDPage page, UpdateCellProperty updateCellProperty) throws IOException {
 		this(table, page, new ArrayList<Float>(), updateCellProperty);
@@ -76,30 +75,31 @@ public class DataTable {
 
 	/**
 	 * <p>
-	 * Create a CSVTable object to be able to add CSV document to a Table. A
-	 * page needs to be passed to the constructor so the Template Cells can be
-	 * created. The column widths can be given
+	 * Create a CSVTable object to be able to add CSV document to a Table. A page
+	 * needs to be passed to the constructor so the Template Cells can be created.
+	 * The column widths can be given
 	 * </p>
 	 *
-	 * @param table {@link Table}
-	 * @param page {@link PDPage}
+	 * @param table     {@link Table}
+	 * @param page      {@link PDPage}
 	 * @param colWidths column widths
 	 * @throws IOException If there is an error releasing resources
 	 */
 	public DataTable(Table table, PDPage page, List<Float> colWidths) throws IOException {
 		this(table, page, colWidths, null);
 	}
-	
+
 	/**
 	 * <p>
-	 * Create a CSVTable object to be able to add CSV document to a Table. A
-	 * page needs to be passed to the constructor so the Template Cells can be
-	 * created. The column widths can be given and an interface allows you to update the cell property 
+	 * Create a CSVTable object to be able to add CSV document to a Table. A page
+	 * needs to be passed to the constructor so the Template Cells can be created.
+	 * The column widths can be given and an interface allows you to update the cell
+	 * property
 	 * </p>
 	 *
-	 * @param table {@link Table}
-	 * @param page {@link PDPage}
-	 * @param colWidths column widths
+	 * @param table              {@link Table}
+	 * @param page               {@link PDPage}
+	 * @param colWidths          column widths
 	 * @param updateCellProperty {@link UpdateCellProperty}
 	 * @throws IOException If there is an error releasing resources
 	 */
@@ -124,7 +124,7 @@ public class DataTable {
 			dataCellTemplateEvenList.add(dr.createCell(10f, "A", HorizontalAlignment.LEFT, VerticalAlignment.MIDDLE));
 			dataCellTemplateOddList.add(dr.createCell(10f, "A", HorizontalAlignment.LEFT, VerticalAlignment.MIDDLE));
 		} else {
-			for (int i = 0 ; i < this.colWidths.size(); i++) {
+			for (int i = 0; i < this.colWidths.size(); i++) {
 				dataCellTemplateEvenList.add(dr.createCell(10f, "A", HorizontalAlignment.LEFT, VerticalAlignment.MIDDLE));
 				dataCellTemplateOddList.add(dr.createCell(10f, "A", HorizontalAlignment.LEFT, VerticalAlignment.MIDDLE));
 			}
@@ -145,20 +145,20 @@ public class DataTable {
 		// Header style
 		headerCellTemplate.setFillColor(new Color(137, 218, 245));
 		headerCellTemplate.setTextColor(Color.BLACK);
-		headerCellTemplate.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD));
+		headerCellTemplate.setFonts(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD));
 		headerCellTemplate.setBorderStyle(thinline);
 
 		// Normal cell style, all rows and columns are the same by default
 		defaultCellTemplate.setFillColor(new Color(242, 242, 242));
 		defaultCellTemplate.setTextColor(Color.BLACK);
-		defaultCellTemplate.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA));
+		defaultCellTemplate.setFonts(new PDType1Font(Standard14Fonts.FontName.HELVETICA));
 		defaultCellTemplate.setBorderStyle(thinline);
 		Iterator<Cell> iterator = dataCellTemplateEvenList.iterator();
-		while (iterator.hasNext()){
+		while (iterator.hasNext()) {
 			iterator.next().copyCellStyle(defaultCellTemplate);
 		}
 		iterator = dataCellTemplateOddList.iterator();
-		while (iterator.hasNext()){
+		while (iterator.hasNext()) {
 			iterator.next().copyCellStyle(defaultCellTemplate);
 		}
 	}
@@ -196,13 +196,6 @@ public class DataTable {
 		return colWidths;
 	}
 
-	/**
-	 * <p>
-	 * Set the column widths
-	 * </p>
-	 *
-	 * @param colWidths
-	 */
 	public void setColWidths(List<Float> colWidths) {
 		this.colWidths = colWidths;
 	}
@@ -220,8 +213,8 @@ public class DataTable {
 
 	/**
 	 * <p>
-	 * Get the Cell Template that will be assigned to Data cells that are in
-	 * even rows, and are not the first or last column
+	 * Get the Cell Template that will be assigned to Data cells that are in even
+	 * rows, and are not the first or last column
 	 * </p>
 	 *
 	 * @return data {@link Cell}'s template
@@ -247,8 +240,8 @@ public class DataTable {
 	/**
 	 * <p>
 	 * Get the Cell Templates that will be assigned to Data cells that are in even
-	 * rows, and it contain first and last column. 
-	 * By default dataCellTemplateEvenList.get(1) will be used for all data even cells
+	 * rows, and it contain first and last column. By default
+	 * dataCellTemplateEvenList.get(1) will be used for all data even cells
 	 * </p>
 	 *
 	 * @return data {@link Cell}'s template
@@ -260,8 +253,8 @@ public class DataTable {
 	/**
 	 * <p>
 	 * Get the Cell Templates that will be assigned to Data cells that are in odd
-	 * rows, and it contain first and last column. 
-	 * By default dataCellTemplateOddList.get(1) will be used for all data odd cells
+	 * rows, and it contain first and last column. By default
+	 * dataCellTemplateOddList.get(1) will be used for all data odd cells
 	 * </p>
 	 *
 	 * @return data {@link Cell}'s template
@@ -278,7 +271,7 @@ public class DataTable {
 	 * @return {@link Cell}'s template
 	 */
 	public Cell getFirstColumnCellTemplate() {
-		copyFirstColumnCellTemplateOddToEven =true;
+		copyFirstColumnCellTemplateOddToEven = true;
 		return dataCellTemplateOddList.get(0);
 	}
 
@@ -290,14 +283,14 @@ public class DataTable {
 	 * @return {@link Cell}'s template
 	 */
 	public Cell getLastColumnCellTemplate() {
-		copyLastColumnCellTemplateOddToEven =true;
-		return dataCellTemplateOddList.get(dataCellTemplateOddList.size()-1);
+		copyLastColumnCellTemplateOddToEven = true;
+		return dataCellTemplateOddList.get(dataCellTemplateOddList.size() - 1);
 	}
 
 	/**
 	 * <p>
-	 * Get the Cell Template that will be assigned to cells in the first column that are in
-	 * odd rows
+	 * Get the Cell Template that will be assigned to cells in the first column that
+	 * are in odd rows
 	 * </p>
 	 *
 	 * @return {@link Cell}'s template
@@ -309,21 +302,21 @@ public class DataTable {
 
 	/**
 	 * <p>
-	 * Get the Cell Template that will be assigned to cells in the last columns that are in
-	 * odd rows
+	 * Get the Cell Template that will be assigned to cells in the last columns that
+	 * are in odd rows
 	 * </p>
 	 *
 	 * @return {@link Cell}'s template
 	 */
 	public Cell getLastColumnCellTemplateOdd() {
 		copyLastColumnCellTemplateOddToEven = false;
-		return dataCellTemplateOddList.get(dataCellTemplateOddList.size()-1);
+		return dataCellTemplateOddList.get(dataCellTemplateOddList.size() - 1);
 	}
 
 	/**
 	 * <p>
-	 * Get the Cell Template that will be assigned to cells in the first column that are in
-	 * even rows
+	 * Get the Cell Template that will be assigned to cells in the first column that
+	 * are in even rows
 	 * </p>
 	 *
 	 * @return {@link Cell}'s template
@@ -335,14 +328,14 @@ public class DataTable {
 
 	/**
 	 * <p>
-	 * Get the Cell Template that will be assigned to cells in the last columns that are in
-	 * even rows
+	 * Get the Cell Template that will be assigned to cells in the last columns that
+	 * are in even rows
 	 *
 	 * @return {@link Cell}'s template
 	 */
 	public Cell getLastColumnCellTemplateEven() {
 		copyLastColumnCellTemplateOddToEven = false;
-		return dataCellTemplateEvenList.get(dataCellTemplateOddList.size()-1);
+		return dataCellTemplateEvenList.get(dataCellTemplateOddList.size() - 1);
 	}
 
 	/**
@@ -350,7 +343,7 @@ public class DataTable {
 	 * Add a List of Lists to the Table
 	 * </p>
 	 *
-	 * @param data {@link Table}'s data
+	 * @param data      {@link Table}'s data
 	 * @param hasHeader boolean if {@link Table} has header
 	 * @throws IOException parsing error
 	 */
@@ -387,7 +380,7 @@ public class DataTable {
 	 * Add a String representing a CSV document to the Table
 	 * </p>
 	 *
-	 * @param data {@link Table}'s data
+	 * @param data      {@link Table}'s data
 	 * @param hasHeader boolean if {@link Table} has header
 	 * @param separator {@code char} on which data will be parsed
 	 * @throws IOException parsing error
@@ -407,11 +400,10 @@ public class DataTable {
 				// calculate the width of the columns
 				float totalWidth = 0.0f;
 				if (this.colWidths == null) {
-                    
+
 					for (int i = 0; i < line.size(); i++) {
 						String cellValue = line.get(i);
-						float textWidth = FontUtils.getStringWidth(headerCellTemplate.getFont(), " " + cellValue + " ",
-								headerCellTemplate.getFontSize());
+						float textWidth = FontUtils.getStringWidth(headerCellTemplate.getFonts()[0], " " + cellValue + " ", headerCellTemplate.getFontSize());
 						totalWidth += textWidth;
 						numcols = i;
 					}
@@ -427,21 +419,20 @@ public class DataTable {
 						if (line.size() >= i) {
 							cellValue = line.get(i);
 						}
-						float textWidth = FontUtils.getStringWidth(headerCellTemplate.getFont(), " " + cellValue + " ",
-								headerCellTemplate.getFontSize());
+						float textWidth = FontUtils.getStringWidth(headerCellTemplate.getFonts()[0], " " + cellValue + " ", headerCellTemplate.getFontSize());
 						float widthPct = textWidth * 100 / table.getWidth();
 						// apply width factor
 						widthPct = widthPct * sizefactor;
 						colWidths.put(i, widthPct);
 					}
 				} else {
-					for (Float width : this.colWidths){
+					for (Float width : this.colWidths) {
 						totalWidth += width;
 					}
 					for (int i = 0; i < this.colWidths.size(); i++) {
 						// to
 						// percent
-						colWidths.put(i,this.colWidths.get(i) / (totalWidth / 100));
+						colWidths.put(i, this.colWidths.get(i) / (totalWidth / 100));
 						numcols = i;
 					}
 
@@ -454,8 +445,7 @@ public class DataTable {
 				Row h = table.createRow(headerCellTemplate.getCellHeight());
 				for (int i = 0; i <= numcols; i++) {
 					String cellValue = line.get(i);
-					Cell c = h.createCell(colWidths.get(i), cellValue, headerCellTemplate.getAlign(),
-							headerCellTemplate.getValign());
+					Cell c = h.createCell(colWidths.get(i), cellValue, headerCellTemplate.getAlign(), headerCellTemplate.getValign());
 					// Apply style of header cell to this cell
 					c.copyCellStyle(headerCellTemplate);
 					c.setText(cellValue);
@@ -468,9 +458,10 @@ public class DataTable {
 					// Choose the correct template for the cell
 					Cell template = dataCellTemplateEvenList.get(i);
 					if (odd) {
-						template = dataCellTemplateOddList.get(i);;
+						template = dataCellTemplateOddList.get(i);
+						;
 					}
-					
+
 					String cellValue = "";
 					if (line.size() >= i) {
 						cellValue = line.get(i);
@@ -480,7 +471,7 @@ public class DataTable {
 					c.copyCellStyle(template);
 					c.setText(cellValue);
 					if (updateCellProperty != null)
-						updateCellProperty.updateCellPropertiesAtColumn(c,i,numrow);
+						updateCellProperty.updateCellPropertiesAtColumn(c, i, numrow);
 				}
 				numrow++;
 			}
@@ -492,12 +483,17 @@ public class DataTable {
 		if (copyFirstColumnCellTemplateOddToEven)
 			dataCellTemplateEvenList.set(0, dataCellTemplateOddList.get(0));
 		if (copyLastColumnCellTemplateOddToEven)
-			dataCellTemplateEvenList.set(dataCellTemplateEvenList.size()-1, dataCellTemplateOddList.get(dataCellTemplateOddList.size()-1));
-		if (size <= 3) return; // Only in case of more than 3 columns there are first last and data template 
-		while (dataCellTemplateEvenList.size() < size) dataCellTemplateEvenList.add(1,dataCellTemplateEvenList.get(1) );
-		while (dataCellTemplateOddList.size() < size) dataCellTemplateOddList.add(1,dataCellTemplateOddList.get(1) );
-		while (dataCellTemplateEvenList.size() > size) dataCellTemplateEvenList.remove(dataCellTemplateEvenList.size()-2 );
-		while (dataCellTemplateOddList.size() >size) dataCellTemplateOddList.remove(dataCellTemplateOddList.size()-2 );
-		
+			dataCellTemplateEvenList.set(dataCellTemplateEvenList.size() - 1, dataCellTemplateOddList.get(dataCellTemplateOddList.size() - 1));
+		if (size <= 3)
+			return; // Only in case of more than 3 columns there are first last and data template
+		while (dataCellTemplateEvenList.size() < size)
+			dataCellTemplateEvenList.add(1, dataCellTemplateEvenList.get(1));
+		while (dataCellTemplateOddList.size() < size)
+			dataCellTemplateOddList.add(1, dataCellTemplateOddList.get(1));
+		while (dataCellTemplateEvenList.size() > size)
+			dataCellTemplateEvenList.remove(dataCellTemplateEvenList.size() - 2);
+		while (dataCellTemplateOddList.size() > size)
+			dataCellTemplateOddList.remove(dataCellTemplateOddList.size() - 2);
+
 	}
 }

@@ -6,6 +6,7 @@ import java.io.IOException;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
+import be.quodlibet.boxable.Paragraph;
 import be.quodlibet.boxable.line.LineStyle;
 
 /**
@@ -24,31 +25,25 @@ public final class PDStreamUtils {
 
 	/**
 	 * <p>
-	 * Provides ability to write on a {@link PDPageContentStream}. The text will
-	 * be written above Y coordinate.
+	 * Provides ability to write on a {@link PDPageContentStream}. The text will be
+	 * written above Y coordinate.
 	 * </p>
 	 * 
-	 * @param stream
-	 *            The {@link PDPageContentStream} where writing will be applied.
-	 * @param text
-	 *            The text which will be displayed.
-	 * @param font
-	 *            The font of the text
-	 * @param fontSize
-	 *            The font size of the text
-	 * @param x
-	 *            Start X coordinate for text.
-	 * @param y
-	 *            Start Y coordinate for text.
-	 * @param color
-	 *            Color of the text
+	 * @param stream   The {@link PDPageContentStream} where writing will be
+	 *                 applied.
+	 * @param text     The text which will be displayed.
+	 * @param fonts    The font of the text
+	 * @param fontSize The font size of the text
+	 * @param x        Start X coordinate for text.
+	 * @param y        Start Y coordinate for text.
+	 * @param color    Color of the text
 	 */
-	public static void write(final PageContentStreamOptimized stream, final String text, final PDFont font,
-			final float fontSize, final float x, final float y, final Color color) {
+	public static void write(final PageContentStreamOptimized stream, final String text, final PDFont[] fonts, final float fontSize, final float x, final float y,
+			final Color color) {
 		try {
-			stream.setFont(font, fontSize);
+			stream.setFonts(fonts, fontSize);
 			// we want to position our text on his baseline
-			stream.newLineAt(x, y - FontUtils.getDescent(font, fontSize) - FontUtils.getHeight(font, fontSize));
+			stream.newLineAt(x, y - Paragraph.getAverageDescent(fonts, fontSize) - Paragraph.getAverageFontHeight(fonts, fontSize));
 			stream.setNonStrokingColor(color);
 			stream.showText(text);
 		} catch (final IOException e) {
@@ -61,21 +56,14 @@ public final class PDStreamUtils {
 	 * Provides ability to draw rectangle for debugging purposes.
 	 * </p>
 	 * 
-	 * @param stream
-	 *            The {@link PDPageContentStream} where drawing will be applied.
-	 * @param x
-	 *            Start X coordinate for rectangle.
-	 * @param y
-	 *            Start Y coordinate for rectangle.
-	 * @param width
-	 *            Width of rectangle
-	 * @param height
-	 *            Height of rectangle
-	 * @param color
-	 *            Color of the text
+	 * @param stream The {@link PDPageContentStream} where drawing will be applied.
+	 * @param x      Start X coordinate for rectangle.
+	 * @param y      Start Y coordinate for rectangle.
+	 * @param width  Width of rectangle
+	 * @param height Height of rectangle
+	 * @param color  Color of the text
 	 */
-	public static void rect(final PageContentStreamOptimized stream, final float x, final float y, final float width,
-			final float height, final Color color) {
+	public static void rect(final PageContentStreamOptimized stream, final float x, final float y, final float width, final float height, final Color color) {
 		try {
 			stream.setNonStrokingColor(color);
 			// negative height because we want to draw down (not up!)
@@ -92,26 +80,20 @@ public final class PDStreamUtils {
 	 * descent).
 	 * </p>
 	 * 
-	 * @param stream
-	 *            The {@link PDPageContentStream} where drawing will be applied.
-	 * @param x
-	 *            Start X coordinate for rectangle.
-	 * @param y
-	 *            Start Y coordinate for rectangle.
-	 * @param font
-	 *            {@link PDFont} from which will be obtained font metrics
-	 * @param fontSize
-	 *            Font size
+	 * @param stream   The {@link PDPageContentStream} where drawing will be
+	 *                 applied.
+	 * @param x        Start X coordinate for rectangle.
+	 * @param y        Start Y coordinate for rectangle.
+	 * @param font     {@link PDFont} from which will be obtained font metrics
+	 * @param fontSize Font size
 	 */
-	public static void rectFontMetrics(final PageContentStreamOptimized stream, final float x, final float y,
-			final PDFont font, final float fontSize) {
+	public static void rectFontMetrics(final PageContentStreamOptimized stream, final float x, final float y, final PDFont font, final float fontSize) {
 		// height
 		PDStreamUtils.rect(stream, x, y, 3, FontUtils.getHeight(font, fontSize), Color.BLUE);
 		// ascent
 		PDStreamUtils.rect(stream, x + 3, y, 3, FontUtils.getAscent(font, fontSize), Color.CYAN);
 		// descent
-		PDStreamUtils.rect(stream, x + 3, y - FontUtils.getHeight(font, fontSize), 3, FontUtils.getDescent(font, 14),
-				Color.GREEN);
+		PDStreamUtils.rect(stream, x + 3, y - FontUtils.getHeight(font, fontSize), 3, FontUtils.getDescent(font, 14), Color.GREEN);
 	}
 
 	/**
@@ -120,11 +102,10 @@ public final class PDStreamUtils {
 	 * dashed line)
 	 * </p>
 	 * 
-	 * @param stream
-	 *            The {@link PDPageContentStream} where drawing will be applied.
-	 * @param line
-	 *            The {@link LineStyle} that would be applied
-	 * @throws IOException If the content stream could not be written or the line color cannot be retrieved.
+	 * @param stream The {@link PDPageContentStream} where drawing will be applied.
+	 * @param line   The {@link LineStyle} that would be applied
+	 * @throws IOException If the content stream could not be written or the line
+	 *                     color cannot be retrieved.
 	 */
 	public static void setLineStyles(final PageContentStreamOptimized stream, final LineStyle line) throws IOException {
 		stream.setStrokingColor(line.getColor());

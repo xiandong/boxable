@@ -1,172 +1,209 @@
 package be.quodlibet.boxable.utils;
 
+import java.awt.Color;
+import java.io.IOException;
+import java.util.Arrays;
+
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.util.Matrix;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.Arrays;
+import be.quodlibet.boxable.Paragraph;
 
 public class PageContentStreamOptimized {
-    private static final Matrix ROTATION = Matrix.getRotateInstance(Math.PI * 0.5, 0, 0);
+	private static final Matrix ROTATION = Matrix.getRotateInstance(Math.PI * 0.5, 0, 0);
 
-    private final PDPageContentStream pageContentStream;
-    private boolean textMode;
-    private float textCursorAbsoluteX;
-    private float textCursorAbsoluteY;
-    private boolean rotated;
+	private final PDPageContentStream pageContentStream;
+	private boolean textMode;
+	private float textCursorAbsoluteX;
+	private float textCursorAbsoluteY;
+	private boolean rotated;
 
-    public PageContentStreamOptimized(PDPageContentStream pageContentStream) {
-        this.pageContentStream = pageContentStream;
-    }
+	public PageContentStreamOptimized(PDPageContentStream pageContentStream) {
+		this.pageContentStream = pageContentStream;
+	}
 
-    public void setRotated(boolean rotated) throws IOException {
-        if (this.rotated == rotated) return;
-        if (rotated) {
-            if (textMode) {
-                pageContentStream.setTextMatrix(ROTATION);
-                textCursorAbsoluteX = 0;
-                textCursorAbsoluteY = 0;
-            }
-        } else {
-            endText();
-        }
-        this.rotated = rotated;
-    }
+	public void setRotated(boolean rotated) throws IOException {
+		if (this.rotated == rotated)
+			return;
+		if (rotated) {
+			if (textMode) {
+				pageContentStream.setTextMatrix(ROTATION);
+				textCursorAbsoluteX = 0;
+				textCursorAbsoluteY = 0;
+			}
+		} else {
+			endText();
+		}
+		this.rotated = rotated;
+	}
 
-    public void beginText() throws IOException {
-        if (!textMode) {
-            pageContentStream.beginText();
-            if (rotated) {
-                pageContentStream.setTextMatrix(ROTATION);
-            }
-            textMode = true;
-            textCursorAbsoluteX = 0;
-            textCursorAbsoluteY = 0;
-        }
-    }
+	public void beginText() throws IOException {
+		if (!textMode) {
+			pageContentStream.beginText();
+			if (rotated) {
+				pageContentStream.setTextMatrix(ROTATION);
+			}
+			textMode = true;
+			textCursorAbsoluteX = 0;
+			textCursorAbsoluteY = 0;
+		}
+	}
 
-    public void endText() throws IOException {
-        if (textMode) {
-            pageContentStream.endText();
-            textMode = false;
-        }
-    }
+	public void endText() throws IOException {
+		if (textMode) {
+			pageContentStream.endText();
+			textMode = false;
+		}
+	}
 
-    private PDFont currentFont;
-    private float currentFontSize;
+	private PDFont[] currentFonts;
+	private float currentFontSize;
 
-    public void setFont(PDFont font, float fontSize) throws IOException {
-        if (font != currentFont || fontSize != currentFontSize) {
-            pageContentStream.setFont(font, fontSize);
-            currentFont = font;
-            currentFontSize = fontSize;
-        }
-    }
+	public void setFonts(PDFont[] fonts, float fontSize) throws IOException {
+		if (fonts != currentFonts || fontSize != currentFontSize) {
 
-    public void showText(String text) throws IOException {
-        beginText();
-        pageContentStream.showText(text);
-    }
+			currentFonts = fonts;
+			currentFontSize = fontSize;
+		}
+	}
 
-    public void newLineAt(float tx, float ty) throws IOException {
-        beginText();
-        float dx = tx - textCursorAbsoluteX;
-        float dy = ty - textCursorAbsoluteY;
-        if (rotated) {
-            pageContentStream.newLineAtOffset(dy, -dx);
-        } else {
-            pageContentStream.newLineAtOffset(dx, dy);
-        }
-        textCursorAbsoluteX = tx;
-        textCursorAbsoluteY = ty;
-    }
+	public void showText(String text) throws IOException {
+		beginText();
+		PDFont currentFont = null;
+		int start = 0;
+		int end = 0;
+		for (int i = 0; i < text.length(); i++) {
+			PDFont cFont = null;
+			int codePoint = text.codePointAt(i);
+			if (codePoint > Paragraph.LAST_BMP) {
+				cFont = currentFonts.length > 1 ? currentFonts[1] : currentFonts[0];
+				i++;
+			} else {
+				cFont = currentFonts[0];
+			}
+			if (currentFont != null && currentFont.getName().equals(cFont.getName())) {
+				// do nothing
+				end = i;
+			} else {
+				if (currentFont != null) {
+					String s = text.substring(start, end + 1);
+					start = end + 1;
+					this.showText(currentFont, s);
+				}
+				end = i;
+				currentFont = cFont;
+			}
 
-    public void drawImage(PDImageXObject image, float x, float y, float width, float height) throws IOException {
-        endText();
-        pageContentStream.drawImage(image, x, y, width, height);
-    }
+		}
+		if (start < text.length()) {
+			String s = text.substring(start, text.length());
+			this.showText(currentFont, s);
+		}
+	}
 
-    private Color currentStrokingColor;
+	private void showText(PDFont font, String text) throws IOException {
+//		beginText();
+		pageContentStream.setFont(font, currentFontSize);
+		pageContentStream.showText(text);
+	}
 
-    public void setStrokingColor(Color color) throws IOException {
-        if (color != currentStrokingColor) {
-            pageContentStream.setStrokingColor(color);
-            currentStrokingColor = color;
-        }
-    }
+	public void newLineAt(float tx, float ty) throws IOException {
+		beginText();
+		float dx = tx - textCursorAbsoluteX;
+		float dy = ty - textCursorAbsoluteY;
+		if (rotated) {
+			pageContentStream.newLineAtOffset(dy, -dx);
+		} else {
+			pageContentStream.newLineAtOffset(dx, dy);
+		}
+		textCursorAbsoluteX = tx;
+		textCursorAbsoluteY = ty;
+	}
 
-    private Color currentNonStrokingColor;
+	public void drawImage(PDImageXObject image, float x, float y, float width, float height) throws IOException {
+		endText();
+		pageContentStream.drawImage(image, x, y, width, height);
+	}
 
-    public void setNonStrokingColor(Color color) throws IOException {
-        if (color != currentNonStrokingColor) {
-            pageContentStream.setNonStrokingColor(color);
-            currentNonStrokingColor = color;
-        }
-    }
+	private Color currentStrokingColor;
 
-    public void addRect(float x, float y, float width, float height) throws IOException {
-        endText();
-        pageContentStream.addRect(x, y, width, height);
-    }
+	public void setStrokingColor(Color color) throws IOException {
+		if (color != currentStrokingColor) {
+			pageContentStream.setStrokingColor(color);
+			currentStrokingColor = color;
+		}
+	}
 
-    public void moveTo(float x, float y) throws IOException {
-        endText();
-        pageContentStream.moveTo(x, y);
-    }
+	private Color currentNonStrokingColor;
 
-    public void lineTo(float x, float y) throws IOException {
-        endText();
-        pageContentStream.lineTo(x, y);
-    }
+	public void setNonStrokingColor(Color color) throws IOException {
+		if (color != currentNonStrokingColor) {
+			pageContentStream.setNonStrokingColor(color);
+			currentNonStrokingColor = color;
+		}
+	}
 
-    public void stroke() throws IOException {
-        endText();
-        pageContentStream.stroke();
-    }
+	public void addRect(float x, float y, float width, float height) throws IOException {
+		endText();
+		pageContentStream.addRect(x, y, width, height);
+	}
 
-    public void fill() throws IOException {
-        endText();
-        pageContentStream.fill();
-    }
+	public void moveTo(float x, float y) throws IOException {
+		endText();
+		pageContentStream.moveTo(x, y);
+	}
 
-    private float currentLineWidth = -1;
+	public void lineTo(float x, float y) throws IOException {
+		endText();
+		pageContentStream.lineTo(x, y);
+	}
 
-    public void setLineWidth(float lineWidth) throws IOException {
-        if (lineWidth != currentLineWidth) {
-            endText();
-            pageContentStream.setLineWidth(lineWidth);
-            currentLineWidth = lineWidth;
-        }
-    }
+	public void stroke() throws IOException {
+		endText();
+		pageContentStream.stroke();
+	}
 
-    private int currentLineCapStyle = -1;
+	public void fill() throws IOException {
+		endText();
+		pageContentStream.fill();
+	}
 
-    public void setLineCapStyle(int lineCapStyle) throws IOException {
-        if (lineCapStyle != currentLineCapStyle) {
-            endText();
-            pageContentStream.setLineCapStyle(lineCapStyle);
-            currentLineCapStyle = lineCapStyle;
-        }
-    }
+	private float currentLineWidth = -1;
 
-    private float[] currentLineDashPattern;
-    private float currentLineDashPhase;
+	public void setLineWidth(float lineWidth) throws IOException {
+		if (lineWidth != currentLineWidth) {
+			endText();
+			pageContentStream.setLineWidth(lineWidth);
+			currentLineWidth = lineWidth;
+		}
+	}
 
-    public void setLineDashPattern(float[] pattern, float phase) throws IOException {
-        if ((pattern != currentLineDashPattern &&
-            !Arrays.equals(pattern, currentLineDashPattern)) || phase != currentLineDashPhase) {
-            endText();
-            pageContentStream.setLineDashPattern(pattern, phase);
-            currentLineDashPattern = pattern;
-            currentLineDashPhase = phase;
-        }
-    }
+	private int currentLineCapStyle = -1;
 
-    public void close() throws IOException {
-        endText();
-        pageContentStream.close();
-    }
+	public void setLineCapStyle(int lineCapStyle) throws IOException {
+		if (lineCapStyle != currentLineCapStyle) {
+			endText();
+			pageContentStream.setLineCapStyle(lineCapStyle);
+			currentLineCapStyle = lineCapStyle;
+		}
+	}
+
+	private float[] currentLineDashPattern;
+	private float currentLineDashPhase;
+
+	public void setLineDashPattern(float[] pattern, float phase) throws IOException {
+		if ((pattern != currentLineDashPattern && !Arrays.equals(pattern, currentLineDashPattern)) || phase != currentLineDashPhase) {
+			endText();
+			pageContentStream.setLineDashPattern(pattern, phase);
+			currentLineDashPattern = pattern;
+			currentLineDashPhase = phase;
+		}
+	}
+
+	public void close() throws IOException {
+		endText();
+		pageContentStream.close();
+	}
 }

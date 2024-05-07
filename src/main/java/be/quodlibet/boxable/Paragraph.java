@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 import be.quodlibet.boxable.text.PipelineLayer;
 import be.quodlibet.boxable.text.Token;
@@ -24,14 +24,14 @@ import be.quodlibet.boxable.text.Tokenizer;
 import be.quodlibet.boxable.text.WrappingFunction;
 import be.quodlibet.boxable.utils.FontUtils;
 import be.quodlibet.boxable.utils.PDStreamUtils;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import be.quodlibet.boxable.utils.PageContentStreamOptimized;
 
 public class Paragraph {
 
 	private float width;
 	private final String text;
 	private float fontSize;
-	private PDFont font;
+	private PDFont[] fonts;
 	private final PDFont fontBold;
 	private final PDFont fontItalic;
 	private final PDFont fontBoldItalic;
@@ -53,12 +53,13 @@ public class Paragraph {
 	private List<String> lines;
 	private Float spaceWidth;
 
-	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align) {
-		this(text, font, fontSize, width, align, null);
+	public Paragraph(String text, PDFont[] fonts, float fontSize, float width, final HorizontalAlignment align) {
+		this(text, fonts, fontSize, width, align, null);
 	}
 
 	// This function exists only to preserve backwards compatibility for
-	// the getWrappingFunction() method; it has been replaced with a faster implementation in the Tokenizer
+	// the getWrappingFunction() method; it has been replaced with a faster
+	// implementation in the Tokenizer
 	private static final WrappingFunction DEFAULT_WRAP_FUNC = new WrappingFunction() {
 		@Override
 		public String[] getLines(String t) {
@@ -66,25 +67,24 @@ public class Paragraph {
 		}
 	};
 
-	public Paragraph(String text, PDFont font, int fontSize, int width) {
-		this(text, font, fontSize, width, HorizontalAlignment.LEFT, null);
+	public Paragraph(String text, PDFont[] fonts, int fontSize, int width) {
+		this(text, fonts, fontSize, width, HorizontalAlignment.LEFT, null);
 	}
 
-	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
+	public Paragraph(String text, PDFont[] fonts, float fontSize, float width, final HorizontalAlignment align, WrappingFunction wrappingFunction) {
+		this(text, fonts, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction);
+	}
+
+	public Paragraph(String text, PDFont[] fonts, float fontSize, float width, final HorizontalAlignment align, final Color color, final TextType textType,
 			WrappingFunction wrappingFunction) {
-		this(text, font, fontSize, width, align, Color.BLACK, (TextType) null, wrappingFunction);
+		this(text, fonts, fontSize, width, align, color, textType, wrappingFunction, 1);
 	}
 
-	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
-			final Color color, final TextType textType, WrappingFunction wrappingFunction) {
-		this(text, font, fontSize, width, align, color, textType, wrappingFunction, 1);
-	}
-
-	public Paragraph(String text, PDFont font, float fontSize, float width, final HorizontalAlignment align,
-			final Color color, final TextType textType, WrappingFunction wrappingFunction, float lineSpacing) {
+	public Paragraph(String text, PDFont[] fonts, float fontSize, float width, final HorizontalAlignment align, final Color color, final TextType textType,
+			WrappingFunction wrappingFunction, float lineSpacing) {
 		this.color = color;
 		this.text = text;
-		this.font = font;
+		this.fonts = fonts;
 		// check if we have different default font for italic and bold text
 		if (FontUtils.getDefaultfonts().isEmpty()) {
 			fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
@@ -111,7 +111,8 @@ public class Paragraph {
 
 		final List<String> result = new ArrayList<>();
 
-		// text and wrappingFunction are immutable, so we only ever need to compute tokens once
+		// text and wrappingFunction are immutable, so we only ever need to compute
+		// tokens once
 		if (tokens == null) {
 			tokens = Tokenizer.tokenize(text, wrappingFunction);
 		}
@@ -120,11 +121,11 @@ public class Paragraph {
 		boolean italic = false;
 		boolean bold = false;
 		boolean listElement = false;
-		PDFont currentFont = font;
+		PDFont currentFont = fonts[0];
 		int orderListElement = 1;
 		int numberOfOrderedLists = 0;
 		int listLevel = 0;
-		Stack<HTMLListNode> stack= new Stack<>();
+		Stack<HTMLListNode> stack = new Stack<>();
 
 		final PipelineLayer textInLine = new PipelineLayer();
 		final PipelineLayer sinceLastWrapPoint = new PipelineLayer();
@@ -134,21 +135,23 @@ public class Paragraph {
 			case OPEN_TAG:
 				if (isBold(token)) {
 					bold = true;
-					currentFont = getFont(bold, italic);
+					currentFont = getDefaultFont(bold, italic);
 				} else if (isItalic(token)) {
 					italic = true;
-					currentFont = getFont(bold, italic);
+					currentFont = getDefaultFont(bold, italic);
 				} else if (isList(token)) {
 					listLevel++;
 					if (token.getData().equals("ol")) {
 						numberOfOrderedLists++;
-						if(listLevel > 1){
-							stack.add(new HTMLListNode(orderListElement-1, stack.isEmpty() ? String.valueOf(orderListElement-1)+"." : stack.peek().getValue() + String.valueOf(orderListElement-1) + "."));
+						if (listLevel > 1) {
+							stack.add(new HTMLListNode(orderListElement - 1,
+									stack.isEmpty() ? String.valueOf(orderListElement - 1) + "." : stack.peek().getValue() + String.valueOf(orderListElement - 1) + "."));
 						}
 						orderListElement = 1;
 
 						textInLine.push(sinceLastWrapPoint);
-						// check if you have some text before this list, if you don't then you really don't need extra line break for that
+						// check if you have some text before this list, if you don't then you really
+						// don't need extra line break for that
 						if (textInLine.trimmedWidth() > 0) {
 							// this is our line
 							result.add(textInLine.trimmedText());
@@ -160,7 +163,8 @@ public class Paragraph {
 						}
 					} else if (token.getData().equals("ul")) {
 						textInLine.push(sinceLastWrapPoint);
-						// check if you have some text before this list, if you don't then you really don't need extra line break for that
+						// check if you have some text before this list, if you don't then you really
+						// don't need extra line break for that
 						if (textInLine.trimmedWidth() > 0) {
 							// this is our line
 							result.add(textInLine.trimmedText());
@@ -177,25 +181,26 @@ public class Paragraph {
 			case CLOSE_TAG:
 				if (isBold(token)) {
 					bold = false;
-					currentFont = getFont(bold, italic);
+					currentFont = getDefaultFont(bold, italic);
 					sinceLastWrapPoint.push(token);
 				} else if (isItalic(token)) {
 					italic = false;
-					currentFont = getFont(bold, italic);
+					currentFont = getDefaultFont(bold, italic);
 					sinceLastWrapPoint.push(token);
 				} else if (isList(token)) {
 					listLevel--;
 					if (token.getData().equals("ol")) {
 						numberOfOrderedLists--;
 						// reset elements
-						if(numberOfOrderedLists>0){
-							orderListElement = stack.peek().getOrderingNumber()+1;
+						if (numberOfOrderedLists > 0) {
+							orderListElement = stack.peek().getOrderingNumber() + 1;
 							stack.pop();
 						}
 					}
 					// ensure extra space after each lists
-					// no need to worry about current line text because last closing <li> tag already done that
-					if(listLevel == 0){
+					// no need to worry about current line text because last closing <li> tag
+					// already done that
+					if (listLevel == 0) {
 						result.add(" ");
 						lineWidths.put(lineCounter, 0.0f);
 						mapLineTokens.put(lineCounter, new ArrayList<Token>());
@@ -212,24 +217,25 @@ public class Paragraph {
 						textInLine.reset();
 						lineCounter++;
 						// wrapping at last wrap point
-						if (numberOfOrderedLists>0) {
+						if (numberOfOrderedLists > 0) {
 							String orderingNumber = stack.isEmpty() ? String.valueOf(orderListElement) + "." : stack.pop().getValue() + ".";
 							stack.add(new HTMLListNode(orderListElement, orderingNumber));
 							try {
-								float tab = indentLevel(DEFAULT_TAB);
-								float orderingNumberAndTab = font.getStringWidth(orderingNumber) + tab;
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING, String
-										.valueOf(orderingNumberAndTab / 1000 * getFontSize())));
+								float tab = indentLevel(currentFont, DEFAULT_TAB);
+								float orderingNumberAndTab = getStringWidth(fonts, orderingNumber) + tab;
+								textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(orderingNumberAndTab / 1000 * getFontSize())));
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
 							orderListElement++;
 						} else {
 							try {
-								// if it's not left aligned then ignore list and list element and deal with it as normal text where <li> mimic <br> behaviour
-								float tabBullet = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0) + DEFAULT_TAB_AND_BULLET) : indentLevel(DEFAULT_TAB);
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING,
-										String.valueOf(tabBullet / 1000 * getFontSize())));
+								// if it's not left aligned then ignore list and list element and deal with it
+								// as normal text where <li> mimic <br> behaviour
+								float tabBullet = getAlign().equals(HorizontalAlignment.LEFT)
+										? indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0) + DEFAULT_TAB_AND_BULLET)
+										: indentLevel(currentFont, DEFAULT_TAB);
+								textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(tabBullet / 1000 * getFontSize())));
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
@@ -287,21 +293,25 @@ public class Paragraph {
 					}
 					// wrapping at last wrap point
 					if (listElement) {
-						if (numberOfOrderedLists>0) {
+						if (numberOfOrderedLists > 0) {
 							try {
-								float tab = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0) + DEFAULT_TAB) : indentLevel(DEFAULT_TAB);
-								String orderingNumber = stack.isEmpty() ? String.valueOf(orderListElement) + "." : stack.peek().getValue() + "." + String.valueOf(orderListElement-1) + ".";
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING,
-										String.valueOf((tab + font.getStringWidth(orderingNumber)) / 1000 * getFontSize())));
+								float tab = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0) + DEFAULT_TAB)
+										: indentLevel(currentFont, DEFAULT_TAB);
+								String orderingNumber = stack.isEmpty() ? String.valueOf(orderListElement) + "."
+										: stack.peek().getValue() + "." + String.valueOf(orderListElement - 1) + ".";
+								textInLine.push(fonts, fontSize,
+										new Token(TokenType.PADDING, String.valueOf((tab + getStringWidth(fonts, orderingNumber)) / 1000 * getFontSize())));
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
 						} else {
 							try {
-								// if it's not left aligned then ignore list and list element and deal with it as normal text where <li> mimic <br> behavior
-								float tabBullet = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0) + DEFAULT_TAB_AND_BULLET)  : indentLevel(DEFAULT_TAB);
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING,
-										String.valueOf(tabBullet / 1000 * getFontSize())));
+								// if it's not left aligned then ignore list and list element and deal with it
+								// as normal text where <li> mimic <br> behavior
+								float tabBullet = getAlign().equals(HorizontalAlignment.LEFT)
+										? indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0) + DEFAULT_TAB_AND_BULLET)
+										: indentLevel(currentFont, DEFAULT_TAB);
+								textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(tabBullet / 1000 * getFontSize())));
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -325,26 +335,27 @@ public class Paragraph {
 					lineCounter++;
 					// wrapping at last wrap point
 					if (listElement) {
-						if(!getAlign().equals(HorizontalAlignment.LEFT)) {
+						if (!getAlign().equals(HorizontalAlignment.LEFT)) {
 							listLevel = 0;
 						}
-						if (numberOfOrderedLists>0) {
+						if (numberOfOrderedLists > 0) {
 //							String orderingNumber = String.valueOf(orderListElement) + ". ";
 							String orderingNumber = stack.isEmpty() ? String.valueOf("1") + "." : stack.pop().getValue() + ". ";
 							try {
-								float tab = indentLevel(DEFAULT_TAB);
-								float orderingNumberAndTab = font.getStringWidth(orderingNumber) + tab;
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING, String
-										.valueOf(orderingNumberAndTab / 1000 * getFontSize())));
+								float tab = indentLevel(currentFont, DEFAULT_TAB);
+								float orderingNumberAndTab = getStringWidth(fonts, orderingNumber) + tab;
+								textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(orderingNumberAndTab / 1000 * getFontSize())));
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
 						} else {
 							try {
-								// if it's not left aligned then ignore list and list element and deal with it as normal text where <li> mimic <br> behaviour
-								float tabBullet = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0) + DEFAULT_TAB_AND_BULLET) : indentLevel(DEFAULT_TAB);
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING,
-										String.valueOf(tabBullet / 1000 * getFontSize())));
+								// if it's not left aligned then ignore list and list element and deal with it
+								// as normal text where <li> mimic <br> behaviour
+								float tabBullet = getAlign().equals(HorizontalAlignment.LEFT)
+										? indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0) + DEFAULT_TAB_AND_BULLET)
+										: indentLevel(currentFont, DEFAULT_TAB);
+								textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(tabBullet / 1000 * getFontSize())));
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
@@ -353,7 +364,8 @@ public class Paragraph {
 					textInLine.push(sinceLastWrapPoint);
 				}
 				if (isParagraph(token)) {
-					// check if you have some text before this paragraph, if you don't then you really don't need extra line break for that
+					// check if you have some text before this paragraph, if you don't then you
+					// really don't need extra line break for that
 					if (textInLine.trimmedWidth() > 0) {
 						// extra spacing because it's a paragraph
 						result.add(" ");
@@ -365,23 +377,25 @@ public class Paragraph {
 					listElement = true;
 					// token padding, token bullet
 					try {
-						// if it's not left aligned then ignore list and list element and deal with it as normal text where <li> mimic <br> behaviour
-						float tab = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0) + DEFAULT_TAB) : indentLevel(DEFAULT_TAB);
-						textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING,
-								String.valueOf(tab / 1000 * getFontSize())));
-						if (numberOfOrderedLists>0) {
+						// if it's not left aligned then ignore list and list element and deal with it
+						// as normal text where <li> mimic <br> behaviour
+						float tab = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0) + DEFAULT_TAB)
+								: indentLevel(currentFont, DEFAULT_TAB);
+						textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(tab / 1000 * getFontSize())));
+						if (numberOfOrderedLists > 0) {
 							// if it's ordering list then move depending on your: ordering number + ". "
 							String orderingNumber;
-							if(listLevel > 1){
+							if (listLevel > 1) {
 								orderingNumber = stack.peek().getValue() + String.valueOf(orderListElement) + ". ";
 							} else {
 								orderingNumber = String.valueOf(orderListElement) + ". ";
 							}
-							textInLine.push(currentFont, fontSize, Token.text(TokenType.ORDERING, orderingNumber));
+							textInLine.push(fonts, fontSize, Token.text(TokenType.ORDERING, orderingNumber));
 							orderListElement++;
 						} else {
-							// if it's unordered list then just move by bullet character (take care of alignment!)
-							textInLine.push(currentFont, fontSize, Token.text(TokenType.BULLET, " "));
+							// if it's unordered list then just move by bullet character (take care of
+							// alignment!)
+							textInLine.push(fonts, fontSize, Token.text(TokenType.BULLET, " "));
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -395,26 +409,26 @@ public class Paragraph {
 					maxLineWidth = Math.max(maxLineWidth, textInLine.trimmedWidth());
 					textInLine.reset();
 					lineCounter++;
-					if(listLevel>0){
+					if (listLevel > 0) {
 						// preserve current indent
 						try {
-							if (numberOfOrderedLists>0) {
-								float tab = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0)) : indentLevel(DEFAULT_TAB);
+							if (numberOfOrderedLists > 0) {
+								float tab = getAlign().equals(HorizontalAlignment.LEFT) ? indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0))
+										: indentLevel(currentFont, DEFAULT_TAB);
 								// if it's ordering list then move depending on your: ordering number + ". "
 								String orderingNumber;
-								if(listLevel > 1){
+								if (listLevel > 1) {
 									orderingNumber = stack.peek().getValue() + String.valueOf(orderListElement) + ". ";
 								} else {
 									orderingNumber = String.valueOf(orderListElement) + ". ";
 								}
-								float tabAndOrderingNumber = tab + font.getStringWidth(orderingNumber);
-								textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING, String.valueOf(tabAndOrderingNumber / 1000 * getFontSize())));
+								float tabAndOrderingNumber = tab + getStringWidth(fonts, orderingNumber);
+								textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(tabAndOrderingNumber / 1000 * getFontSize())));
 								orderListElement++;
 							} else {
-								if(getAlign().equals(HorizontalAlignment.LEFT)){
-									float tab = indentLevel(DEFAULT_TAB*Math.max(listLevel - 1, 0) + DEFAULT_TAB + BULLET_SPACE);
-									textInLine.push(currentFont, fontSize, new Token(TokenType.PADDING,
-											String.valueOf(tab / 1000 * getFontSize())));
+								if (getAlign().equals(HorizontalAlignment.LEFT)) {
+									float tab = indentLevel(currentFont, DEFAULT_TAB * Math.max(listLevel - 1, 0) + DEFAULT_TAB + BULLET_SPACE);
+									textInLine.push(fonts, fontSize, new Token(TokenType.PADDING, String.valueOf(tab / 1000 * getFontSize())));
 								}
 							}
 						} catch (IOException e) {
@@ -426,72 +440,82 @@ public class Paragraph {
 			case TEXT:
 				try {
 					String word = token.getData();
-					float wordWidth = token.getWidth(currentFont);
-					if(wordWidth / 1000f * fontSize > width && width > font.getAverageFontWidth() / 1000f * fontSize) {
+					float wordWidth = token.getWidth(getFonts());
+					if (wordWidth / 1000f * fontSize > width && width > getAverageFontWidth(fonts) / 1000f * fontSize) {
 						// you need to check if you have already something in your line
 						boolean alreadyTextInLine = false;
-						if(textInLine.trimmedWidth()>0){
+						if (textInLine.trimmedWidth() > 0) {
 							alreadyTextInLine = true;
 						}
 						while (wordWidth / 1000f * fontSize > width) {
-						float width = 0;
-						float firstPartWordWidth = 0;
-						float restOfTheWordWidth = 0;
-						String lastTextToken = word;
-						StringBuilder firstPartOfWord = new StringBuilder();
-						StringBuilder restOfTheWord = new StringBuilder();
-						for (int i = 0; i < lastTextToken.length(); i++) {
-							char c = lastTextToken.charAt(i);
-							try {
-								width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-							if(alreadyTextInLine){
-								if (width < this.width - textInLine.trimmedWidth()) {
-									firstPartOfWord.append(c);
-									firstPartWordWidth = Math.max(width, firstPartWordWidth);
-								} else {
-									restOfTheWord.append(c);
-									restOfTheWordWidth = Math.max(width, restOfTheWordWidth);
+							float width = 0;
+							float firstPartWordWidth = 0;
+							float restOfTheWordWidth = 0;
+							String lastTextToken = word;
+							StringBuilder firstPartOfWord = new StringBuilder();
+							StringBuilder restOfTheWord = new StringBuilder();
+							for (int i = 0; i < lastTextToken.length(); i++) {
+								int n = i;
+								int codePoint = lastTextToken.codePointAt(i);
+								if (codePoint > LAST_BMP) {
+									i++;
 								}
-							} else {
-								if (width < this.width) {
-									firstPartOfWord.append(c);
-									firstPartWordWidth = Math.max(width, firstPartWordWidth);
-								} else {
-									if(i==0){
+								String c = lastTextToken.substring(n, i + 1);
+//								char c = lastTextToken.charAt(i);
+								try {
+//									width += (currentFont.getStringWidth(String.valueOf(c)) / 1000f * fontSize);
+									width += (getStringWidth(fonts, c) / 1000f * getFontSize());
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+								if (alreadyTextInLine) {
+									if (width < this.width - textInLine.trimmedWidth()) {
 										firstPartOfWord.append(c);
-										for (int j = 1; j< lastTextToken.length(); j++){
-											restOfTheWord.append(lastTextToken.charAt(j));
-										}
-										break;
+										firstPartWordWidth = Math.max(width, firstPartWordWidth);
 									} else {
 										restOfTheWord.append(c);
 										restOfTheWordWidth = Math.max(width, restOfTheWordWidth);
+									}
+								} else {
+									if (width < this.width) {
+										firstPartOfWord.append(c);
+										firstPartWordWidth = Math.max(width, firstPartWordWidth);
+									} else {
+										if (i == 0) {
+											firstPartOfWord.append(c);
+											for (int j = 1; j < lastTextToken.length(); j++) {
+												restOfTheWord.append(lastTextToken.charAt(j));
+											}
+											break;
+										} else {
+											restOfTheWord.append(c);
+											restOfTheWordWidth = Math.max(width, restOfTheWordWidth);
 
+										}
 									}
 								}
 							}
+							// reset
+							alreadyTextInLine = false;
+//							sinceLastWrapPoint.push(currentFont, fontSize, Token.text(TokenType.TEXT, firstPartOfWord.toString()));
+							pushText(sinceLastWrapPoint, firstPartOfWord.toString());
+							textInLine.push(sinceLastWrapPoint);
+							// this is our line
+							result.add(textInLine.trimmedText());
+							lineWidths.put(lineCounter, textInLine.trimmedWidth());
+							mapLineTokens.put(lineCounter, textInLine.tokens());
+							maxLineWidth = Math.max(maxLineWidth, textInLine.trimmedWidth());
+							textInLine.reset();
+							lineCounter++;
+							word = restOfTheWord.toString();
+//							wordWidth = currentFont.getStringWidth(word);
+							wordWidth = getStringWidth(fonts, word);
 						}
-						// reset
-						alreadyTextInLine = false;
-						sinceLastWrapPoint.push(currentFont, fontSize,
-								Token.text(TokenType.TEXT, firstPartOfWord.toString()));
-						textInLine.push(sinceLastWrapPoint);
-						// this is our line
-						result.add(textInLine.trimmedText());
-						lineWidths.put(lineCounter, textInLine.trimmedWidth());
-						mapLineTokens.put(lineCounter, textInLine.tokens());
-						maxLineWidth = Math.max(maxLineWidth, textInLine.trimmedWidth());
-						textInLine.reset();
-						lineCounter++;
-						word = restOfTheWord.toString();
-						wordWidth = currentFont.getStringWidth(word);
-						}
-						sinceLastWrapPoint.push(currentFont, fontSize, Token.text(TokenType.TEXT, word));
+//						sinceLastWrapPoint.push(currentFont, fontSize, Token.text(TokenType.TEXT, word));
+						pushText(sinceLastWrapPoint, word);
 					} else {
-						sinceLastWrapPoint.push(currentFont, fontSize, token);
+//						sinceLastWrapPoint.push(currentFont, fontSize, token);
+						pushText(sinceLastWrapPoint, token.getData());
 					}
 
 				} catch (IOException e) {
@@ -535,14 +559,14 @@ public class Paragraph {
 		return "ul".equals(token.getData()) || "ol".equals(token.getData());
 	}
 
-	private float indentLevel(int numberOfSpaces) throws IOException {
+	private float indentLevel(PDFont font, int numberOfSpaces) throws IOException {
 		if (spaceWidth == null) {
 			spaceWidth = font.getSpaceWidth();
 		}
 		return numberOfSpaces * spaceWidth;
 	}
 
-	public PDFont getFont(boolean isBold, boolean isItalic) {
+	public PDFont getDefaultFont(boolean isBold, boolean isItalic) {
 		if (isBold) {
 			if (isItalic) {
 				return fontBoldItalic;
@@ -552,13 +576,13 @@ public class Paragraph {
 		} else if (isItalic) {
 			return fontItalic;
 		} else {
-			return font;
+			return fonts[0];
 		}
 	}
 
 	public float write(final PageContentStreamOptimized stream, float cursorX, float cursorY) {
 		if (drawDebug) {
-			PDStreamUtils.rectFontMetrics(stream, cursorX, cursorY, font, fontSize);
+			PDStreamUtils.rectFontMetrics(stream, cursorX, cursorY, fonts[0], fontSize);
 
 			// width
 			PDStreamUtils.rect(stream, cursorX, cursorY, width, 1, Color.RED);
@@ -570,16 +594,16 @@ public class Paragraph {
 			float textX = cursorX;
 			switch (align) {
 			case CENTER:
-				textX += getHorizontalFreeSpace(line) / 2;
+				textX += getHorizontalFreeSpace(fonts, line) / 2;
 				break;
 			case LEFT:
 				break;
 			case RIGHT:
-				textX += getHorizontalFreeSpace(line);
+				textX += getHorizontalFreeSpace(fonts, line);
 				break;
 			}
 
-			PDStreamUtils.write(stream, line, font, fontSize, textX, cursorY, color);
+			PDStreamUtils.write(stream, line, fonts, fontSize, textX, cursorY, color);
 
 			if (textType != null) {
 				switch (textType) {
@@ -588,10 +612,9 @@ public class Paragraph {
 				case STRIKEOUT:
 					throw new UnsupportedOperationException("Not implemented.");
 				case UNDERLINE:
-					float y = (float) (cursorY - FontUtils.getHeight(font, fontSize)
-							- FontUtils.getDescent(font, fontSize) - 1.5);
+					float y = (float) (cursorY - FontUtils.getHeight(fonts[0], fontSize) - FontUtils.getDescent(fonts[0], fontSize) - 1.5);
 					try {
-						float titleWidth = font.getStringWidth(line) / 1000 * fontSize;
+						float titleWidth = getStringWidth(fonts, line) / 1000 * fontSize;
 						stream.moveTo(textX, y);
 						stream.lineTo(textX + titleWidth, y);
 						stream.stroke();
@@ -605,61 +628,18 @@ public class Paragraph {
 			}
 
 			// move one "line" down
-			cursorY -= getFontHeight();
+			cursorY -= getAverageFontHeight(fonts, fontSize);
 		}
 
 		return cursorY;
 	}
 
-	public float getHeight() {
+	public float getHeight(PDFont[] fonts) {
 		if (getLines().size() == 0) {
 			return 0;
 		} else {
-			return (getLines().size() - 1) * getLineSpacing() * getFontHeight() + getFontHeight();
+			return (getLines().size() - 1) * getLineSpacing() * getAverageFontHeight(fonts, fontSize) + getAverageFontHeight(fonts, fontSize);
 		}
-	}
-
-	public float getFontHeight() {
-		return FontUtils.getHeight(font, fontSize);
-	}
-
-	/**
-	 * @deprecated This method will be removed in a future release
-	 * @return current font width
-	 */
-	@Deprecated
-	public float getFontWidth() {
-		return font.getFontDescriptor().getFontBoundingBox().getWidth() / 1000 * fontSize;
-	}
-
-	/**
-	 * @deprecated This method will be removed in a future release
-	 * @param width
-	 *            Paragraph's width
-	 * @return {@link Paragraph} with designated width
-	 */
-	@Deprecated
-	public Paragraph withWidth(int width) {
-		invalidateLineWrapping();
-		this.width = width;
-		return this;
-	}
-
-	/**
-	 * @deprecated This method will be removed in a future release
-	 * @param font
-	 *            {@link PDFont} for {@link Paragraph}
-	 * @param fontSize
-	 *            font size for {@link Paragraph}
-	 * @return {@link Paragraph} with designated font and font size
-	 */
-	@Deprecated
-	public Paragraph withFont(PDFont font, int fontSize) {
-		invalidateLineWrapping();
-		this.spaceWidth = null;
-		this.font = font;
-		this.fontSize = fontSize;
-		return this;
 	}
 
 	// font, fontSize, width, and align are non-final and used in getLines(),
@@ -668,33 +648,9 @@ public class Paragraph {
 		lines = null;
 	}
 
-	/**
-	 * /**
-	 *
-	 * @deprecated This method will be removed in a future release
-	 * @param color
-	 *            {@code int} rgb value for color
-	 * @return Paragraph's {@link Color}
-	 */
-	@Deprecated
-	public Paragraph withColor(int color) {
-		this.color = new Color(color);
-		return this;
-	}
-
-	/**
-	 * @deprecated This method will be replaced by
-	 *             {@code public Color getColor()} in a future release
-	 * @return Paragraph's {@link Color}
-	 */
-	@Deprecated
-	public int getColor() {
-		return color.getRGB();
-	}
-
-	private float getHorizontalFreeSpace(final String text) {
+	private float getHorizontalFreeSpace(PDFont[] fonts, final String text) {
 		try {
-			final float tw = font.getStringWidth(text.trim()) / 1000 * fontSize;
+			final float tw = getStringWidth(fonts, text.trim()) / 1000 * fontSize;
 			return width - tw;
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to calculate text width", e);
@@ -713,8 +669,8 @@ public class Paragraph {
 		return fontSize;
 	}
 
-	public PDFont getFont() {
-		return font;
+	public PDFont[] getFonts() {
+		return fonts;
 	}
 
 	public HorizontalAlignment getAlign() {
@@ -756,6 +712,95 @@ public class Paragraph {
 
 	public void setLineSpacing(float lineSpacing) {
 		this.lineSpacing = lineSpacing;
+	}
+
+	public static final int LAST_BMP = 0xFFFF;
+
+	public static float getStringWidth(PDFont[] fonts, String data) throws IOException {
+		float width = 0;
+		PDFont currentFont = fonts[0];
+		for (int i = 0; i < data.length(); i++) {
+			int codePoint = data.codePointAt(i);
+			if (codePoint > LAST_BMP) {
+				currentFont = fonts.length > 1 ? fonts[1] : fonts[0];
+				i++;
+			}
+			width += currentFont.getWidth(codePoint);
+		}
+		return width;
+	}
+
+	public float getAverageFontWidth() {
+		float total = 0f;
+		for (PDFont font : fonts) {
+			total += font.getAverageFontWidth();
+		}
+		return total / fonts.length;
+	}
+
+	public float getAverageFontHeight() {
+		float total = 0f;
+		for (PDFont font : fonts) {
+			total += FontUtils.getHeight(font, fontSize);
+		}
+		return total / fonts.length;
+	}
+
+	public static float getAverageFontWidth(PDFont[] fonts) {
+		float total = 0f;
+		for (PDFont font : fonts) {
+			total += font.getAverageFontWidth();
+		}
+		return total / fonts.length;
+	}
+
+	public static float getAverageFontHeight(PDFont[] fonts, final float fontSize) {
+		float total = 0f;
+		for (PDFont font : fonts) {
+			total += FontUtils.getHeight(font, fontSize);
+		}
+		return total / fonts.length;
+	}
+
+	public static float getAverageDescent(final PDFont[] fonts, final float fontSize) {
+		float total = 0f;
+		for (PDFont font : fonts) {
+			total += FontUtils.getDescent(font, fontSize);
+		}
+		return total / fonts.length;
+	}
+
+	public void pushText(final PipelineLayer sinceLastWrapPoint, String data) throws IOException {
+		PDFont currentFont = null;
+		int start = 0;
+		int end = 0;
+		for (int i = 0; i < data.length(); i++) {
+			PDFont cFont = null;
+			int codePoint = data.codePointAt(i);
+			if (codePoint > LAST_BMP) {
+				cFont = fonts.length > 1 ? fonts[1] : fonts[0];
+				i++;
+			} else {
+				cFont = fonts[0];
+			}
+			if (currentFont != null && currentFont.getName().equals(cFont.getName())) {
+				// do nothing
+				end = i;
+			} else {
+				if (currentFont != null) {
+					String s = data.substring(start, end + 1);
+					start = end + 1;
+					sinceLastWrapPoint.push(fonts, getFontSize(), Token.text(TokenType.TEXT, s));
+				}
+				end = i;
+				currentFont = cFont;
+			}
+
+		}
+		if (start < data.length()) {
+			String s = data.substring(start, data.length());
+			sinceLastWrapPoint.push(fonts, getFontSize(), Token.text(TokenType.TEXT, s));
+		}
 	}
 
 }
