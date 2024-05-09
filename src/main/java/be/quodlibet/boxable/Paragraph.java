@@ -720,12 +720,18 @@ public class Paragraph {
 		float width = 0;
 		PDFont currentFont = fonts[0];
 		for (int i = 0; i < data.length(); i++) {
-			int codePoint = data.codePointAt(i);
-			if (codePoint > LAST_BMP) {
-				currentFont = fonts.length > 1 ? fonts[1] : fonts[0];
-				i++;
+			try {
+				int codePoint = data.codePointAt(i);
+				if (codePoint > LAST_BMP) {
+					currentFont = fonts.length > 1 ? fonts[1] : fonts[0];
+					i++;
+					width += 1000;
+				} else {
+					width += currentFont.getWidth(codePoint);
+				}
+			} catch (Exception e) {
+				width += 1000;
 			}
-			width += currentFont.getWidth(codePoint);
 		}
 		return width;
 	}
